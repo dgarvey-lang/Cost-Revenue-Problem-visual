@@ -215,13 +215,6 @@ h2{font-size:1.15rem;font-weight:600}
         <div class="actions"><button type="button" class="btn primary check">Check</button><button type="button" class="btn ghost hint">Hint</button></div>
         <p class="hint-text" hidden></p><p class="fb" aria-live="polite"></p>
       </li>
-      <li class="wstep" data-step="5">
-        <h3>Substitute x back in to find y</h3>
-        <p class="say">Put your x into the revenue equation. It is the simpler of the two.</p>
-        <div class="eqline">y = <input data-k="y1" id="w-y1" aria-label="Slope of the revenue equation"> ( <input data-k="y2" id="w-y2" aria-label="Your value of x"> ) = <input data-k="y3" id="w-y3" aria-label="Value of y" style="width:7ch"></div>
-        <div class="actions"><button type="button" class="btn primary check">Check</button><button type="button" class="btn ghost hint">Hint</button></div>
-        <p class="hint-text" hidden></p><p class="fb" aria-live="polite"></p>
-      </li>
     </ol>
     <div class="wfinal" id="w-final" hidden>
       <p id="w-final-text"></p>
@@ -381,7 +374,6 @@ h2{font-size:1.15rem;font-weight:600}
     2: () => `Cost: y = ${coef(S.c)}x + ${num(S.F)}. Revenue: y = ${coef(S.p)}x. Since both are equal to y, write the cost expression on the left of the equals sign and the revenue expression on the right.`,
     3: () => `Subtract ${coef(S.c)}x from both sides. The left side keeps only the fee. The right side becomes (${coef(S.p)} − ${coef(S.c)})x.`,
     4: () => `x is being multiplied by ${coef(S.p - S.c)}. Undo that by dividing both sides by ${coef(S.p - S.c)}.`,
-    5: () => `Replace x with ${W.x===null ? "your answer" : num(W.x)} in y = ${coef(S.p)}x, then multiply.`
   };
   function specialFeedback(n, wrong, v){
     if (n===1){
@@ -393,7 +385,6 @@ h2{font-size:1.15rem;font-weight:600}
     if (n===3 && wrong.includes("t2") && near(v.t2, S.p + S.c)) return `Subtracting ${coef(S.c)}x takes it away from ${coef(S.p)}x. Try ${coef(S.p)} − ${coef(S.c)}.`;
     if (n===4 && wrong.includes("x") && near(v.x, S.F * (S.p - S.c))) return "That's multiplying. To undo multiplication by a number, divide by it.";
     if (n===4 && wrong.includes("x") && near(v.x, (S.p - S.c) / S.F)) return "The division is upside down. Divide the fee by the number in front of x.";
-    if (n===5 && wrong.includes("y2")) return `The middle blank is the x you found in step 4: ${num(W.x)}.`;
     return null;
   }
   function successText(n, v){
@@ -405,11 +396,10 @@ h2{font-size:1.15rem;font-weight:600}
       case 4:
         if (Math.abs(be - Math.round(be)) > 1e-6){
           return near(v.x, be)
-            ? `x = ${num(be)}. You can't sell part of ${art(S.one)}, so ${Math.ceil(be)} ${S.unit} is the fewest that avoids a loss. Use ${num(be)} in the next step to find the exact break-even point.`
+            ? `x = ${num(be)}. You can't sell part of ${art(S.one)}, so ${Math.ceil(be)} ${S.unit} is the fewest that avoids a loss.`
             : `Good thinking: x = ${num(be)} exactly, and you rounded up to ${Math.ceil(be)} because you can't sell part of ${art(S.one)}.`;
         }
         return `x = ${num(be)}. That is how many ${S.unit} it takes to break even.`;
-      case 5: return "Correct.";
     }
   }
   function setLocked(li, locked){
@@ -429,7 +419,7 @@ h2{font-size:1.15rem;font-weight:600}
       li.classList.add("done");
       if (n===4) W.x = v.x;
       fb.className = "fb good"; fb.textContent = successText(n, v);
-      if (n<5){ const nx = wsteps()[n]; setLocked(nx, false); nx.querySelector("input").focus({preventScroll:true}); }
+      if (n<4){ const nx = wsteps()[n]; setLocked(nx, false); nx.querySelector("input").focus({preventScroll:true}); }
       else showFinal();
     } else {
       li.classList.remove("done");
@@ -439,12 +429,10 @@ h2{font-size:1.15rem;font-weight:600}
     }
   }
   function showFinal(){
-    const x = W.x, C = cost(x), R = rev(x);
-    const xs = num(x) + " " + (x===1 ? S.one : S.unit);
-    const be = breakEven();
-    $("w-final-text").innerHTML = (Math.abs(C - R) < 0.005 || Math.abs(x - be) < 0.006)
-      ? `<strong>Break-even point: (${num(be)}, ${num(rev(be))})</strong><br>At ${num(be)} ${S.unit}, cost and revenue are both ${money(rev(be))}. If you graphed the two lines, they would cross at this point.` + (Math.abs(be - Math.round(be)) > 1e-6 ? ` Since you can't sell part of ${art(S.one)}, ${Math.ceil(be)} ${S.unit} is the fewest to sell without a loss.` : "")
-      : `<strong>Solution: x = ${num(x)}</strong><br>At ${xs}, cost is ${money(C)} and revenue is ${money(R)}, a profit of ${money(R - C)}. The exact break-even point is (${num(breakEven())}, ${num(rev(breakEven()))}), but you can't sell part of ${art(S.one)}.`;
+    const be = breakEven(), whole = Math.abs(be - Math.round(be)) < 1e-6, nn = Math.ceil(be - 1e-9);
+    $("w-final-text").innerHTML = whole
+      ? `<strong>Break-even: ${num(be)} ${S.unit}</strong><br>Selling ${num(be)} ${S.unit} makes cost and revenue equal. Fewer than that is a loss, and more is a profit.`
+      : `<strong>Break-even: x = ${num(be)}</strong><br>You can't sell part of ${art(S.one)}, so ${nn} ${S.unit} is the fewest to sell without a loss.`;
     $("w-final").hidden = false;
   }
   function resetWork(){
