@@ -8,8 +8,7 @@ The left pan holds the cost (a fixed fee plus a cost per item). The right pan ho
 
 - **Balance scale** that tips toward the heavier side, with a slider, ±1 / ±10 buttons, and a number box
 - **Live numbers** for cost, revenue, and profit, with the expression written out
-- **Graph** of the cost and revenue lines; the break-even point is marked once students find it
-- **Algebra steps** (hidden until opened) that connect each equation move to the scale
+- **Equation worksheet** where students fill in the blanks to write the cost and revenue equations (y = mx + b), then solve the system by substitution step by step. Each step is checked, with hints and feedback on common mistakes (like swapping slope and y-intercept), and the next step opens when the current one is right
 - **Problems:** Newsletter ($1.50/copy + $450 fee, sells for $3 → 300 copies), T-shirts (→ 25), Bake sale (→ 48), or make your own
 
 ## How to use

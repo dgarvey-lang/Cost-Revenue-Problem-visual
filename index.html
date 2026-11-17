@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
-/* Layout: one-column classroom workbench — problem card, balance scale with controls, live numbers, graph, algebra steps */
+/* Layout: one-column classroom workbench — problem card, balance scale with controls, live numbers, equation worksheet */
 :root{
   --bg:#edf1f7; --surface:#ffffff; --ink:#17223a; --muted:#56627b; --line:#d2d9e5;
   --cost:#c2412d; --fee:#7a2a1d; --rev:#1d7856; --on-bar:#ffffff;
@@ -89,21 +89,34 @@ h2{font-size:1.15rem;font-weight:600}
 .cell.c .v{color:var(--cost)} .cell.r .v{color:var(--rev)}
 @media (max-width:560px){.ledger{grid-template-columns:1fr}}
 
-/* graph */
-#graph{display:block;width:100%;height:auto;min-width:420px}
-#graph text{font-family:var(--font-body);font-size:12px;fill:var(--muted)}
-.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
-.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
-
-/* algebra */
-details{border-top:1px solid var(--line);padding-top:12px}
-summary{cursor:pointer;font:600 1rem var(--font-display);color:var(--accent)}
-.steps{display:grid;gap:12px;margin:14px 0 0;padding:0;list-style:none;counter-reset:s}
-.steps li{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;counter-increment:s}
-.steps li::before{content:counter(s);grid-row:span 2;font:700 .9rem var(--font-display);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
-.steps .math{font:600 1.15rem var(--font-display);font-variant-numeric:tabular-nums}
-.steps .why{color:var(--muted);font-size:.95rem}
-.insight{margin:4px 0 0;padding:12px 14px;border-radius:10px;background:var(--accent-soft);max-width:70ch}
+/* worksheet */
+.work{list-style:none;margin:0;padding:0;display:grid;gap:14px;counter-reset:w}
+.wstep{display:grid;gap:12px;padding:16px;border-radius:12px;background:var(--bg);border:2px solid transparent;min-width:0;transition:opacity .2s}
+.wstep.done{border-color:var(--rev)}
+.wstep.locked{opacity:.45}
+.wstep h3{margin:0;font:600 1.02rem var(--font-display);display:flex;gap:10px;align-items:center}
+.wstep h3::before{counter-increment:w;content:counter(w);flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.9rem;background:var(--accent-soft);color:var(--accent)}
+.wstep.done h3::before{content:"✓";background:var(--rev);color:var(--surface)}
+.wstep .say{margin:0;color:var(--muted);max-width:65ch}
+.eqline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font:600 1.3rem var(--font-display);font-variant-numeric:tabular-nums}
+.eqline input{width:5.2ch;font:inherit;text-align:center;color:var(--ink);background:var(--surface);border:0;border-bottom:3px solid var(--muted);border-radius:6px 6px 0 0;padding:2px 4px}
+.eqline input:disabled{border-bottom-style:dashed}
+.eqline input.ok{border-color:var(--rev);background:var(--good-soft)}
+.eqline input.bad{border-color:var(--cost);background:var(--bad-soft)}
+.tag{font:600 .72rem var(--font-display);letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;color:var(--on-bar);min-width:92px;text-align:center}
+.tag.c{background:var(--cost)} .tag.r{background:var(--rev)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 .92rem var(--font-display);padding:8px 16px;border-radius:10px;cursor:pointer;border:1.5px solid var(--accent)}
+.btn.primary{background:var(--accent);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.fb{margin:0;font-weight:700;max-width:70ch}
+.fb.good{color:var(--rev)} .fb.bad{color:var(--cost)}
+.hint-text{margin:0;padding:10px 12px;border-radius:8px;background:var(--surface);color:var(--muted);max-width:70ch}
+.wfinal{padding:16px;border-radius:12px;background:var(--accent-soft);display:grid;gap:10px}
+.wfinal p{margin:0;font-size:1.05rem;max-width:65ch}
+.wfinal strong{font-family:var(--font-display)}
+.wnote{margin:0;padding:10px 12px;border-radius:8px;background:var(--bad-soft);color:var(--cost);font-weight:700}
 .tip{margin:0;color:var(--muted);font-size:.95rem}
 @media (prefers-reduced-motion: reduce){.status{transition:none}}
 </style>
@@ -169,21 +182,51 @@ summary{cursor:pointer;font:600 1rem var(--font-display);color:var(--accent)}
     </div>
   </section>
 
-  <section class="panel" aria-labelledby="g-h">
-    <h2 id="g-h" class="label">Same story as a graph</h2>
-    <div class="legend"><span><i style="background:var(--cost)"></i>Cost line, y = <span id="lg-cost"></span></span><span><i style="background:var(--rev)"></i>Revenue line, y = <span id="lg-rev"></span></span></div>
-    <div style="overflow-x:auto"><svg id="graph" viewBox="0 0 680 300" role="img" aria-label="Cost and revenue lines plotted against number sold"></svg></div>
-    <p class="tip" id="graph-tip">The vertical gap between the lines is the same as the difference between the pans.</p>
-  </section>
-
-  <section class="panel" aria-labelledby="a-h">
-    <h2 id="a-h" class="label">Solve it on paper</h2>
-    <p class="tip">Find the balance on the scale first, then open the steps. Each algebra move is something you could do to a real scale without tipping it.</p>
-    <details id="steps-box">
-      <summary>Show the algebra steps</summary>
-      <ol class="steps" id="steps"></ol>
-      <p class="insight" id="insight"></p>
-    </details>
+  <section class="panel" aria-labelledby="w-h" id="worksheet">
+    <h2 id="w-h" class="label">Write the equations, then solve by substitution</h2>
+    <p class="tip">Let <b>x</b> = the number of <span class="u-unit">copies</span> sold and <b>y</b> = the number of dollars. Fill in each blank, then press Check. The next step opens when this one is right.</p>
+    <p class="wnote" id="w-note" hidden>Each item costs at least as much as it sells for, so this system has no break-even point. Raise the selling price to try it.</p>
+    <ol class="work">
+      <li class="wstep" data-step="1">
+        <h3>Write the cost and revenue equations</h3>
+        <p class="say">Each equation has the form y = mx + b. The slope m is the amount per <span class="u-one">copy</span>. The y-intercept b is the amount when nothing is sold.</p>
+        <div class="eqline"><span class="tag c">Cost</span> y = <input data-k="cS" id="w-cS" aria-label="Cost equation slope"> x + <input data-k="cI" id="w-cI" aria-label="Cost equation y-intercept"></div>
+        <div class="eqline"><span class="tag r">Revenue</span> y = <input data-k="rS" id="w-rS" aria-label="Revenue equation slope"> x</div>
+        <div class="actions"><button type="button" class="btn primary check">Check</button><button type="button" class="btn ghost hint">Hint</button></div>
+        <p class="hint-text" hidden></p><p class="fb" aria-live="polite"></p>
+      </li>
+      <li class="wstep" data-step="2">
+        <h3>Substitute</h3>
+        <p class="say">Both equations tell you what y equals. Replace y in the revenue equation with the cost expression. One equation is left, with only x in it.</p>
+        <div class="eqline"><input data-k="s1" id="w-s1" aria-label="Coefficient of x on the cost side"> x + <input data-k="s2" id="w-s2" aria-label="Constant on the cost side"> = <input data-k="s3" id="w-s3" aria-label="Coefficient of x on the revenue side"> x</div>
+        <div class="actions"><button type="button" class="btn primary check">Check</button><button type="button" class="btn ghost hint">Hint</button></div>
+        <p class="hint-text" hidden></p><p class="fb" aria-live="polite"></p>
+      </li>
+      <li class="wstep" data-step="3">
+        <h3>Get the x terms on one side</h3>
+        <p class="say">Subtract the smaller x term from both sides. On the scale, that is lifting the same weight off both pans.</p>
+        <div class="eqline"><input data-k="t1" id="w-t1" aria-label="Constant"> = <input data-k="t2" id="w-t2" aria-label="Coefficient of x"> x</div>
+        <div class="actions"><button type="button" class="btn primary check">Check</button><button type="button" class="btn ghost hint">Hint</button></div>
+        <p class="hint-text" hidden></p><p class="fb" aria-live="polite"></p>
+      </li>
+      <li class="wstep" data-step="4">
+        <h3>Solve for x</h3>
+        <div class="eqline">x = <input data-k="x" id="w-x" aria-label="Value of x"></div>
+        <div class="actions"><button type="button" class="btn primary check">Check</button><button type="button" class="btn ghost hint">Hint</button></div>
+        <p class="hint-text" hidden></p><p class="fb" aria-live="polite"></p>
+      </li>
+      <li class="wstep" data-step="5">
+        <h3>Substitute x back in to find y</h3>
+        <p class="say">Put your x into the revenue equation. It is the simpler of the two.</p>
+        <div class="eqline">y = <input data-k="y1" id="w-y1" aria-label="Slope of the revenue equation"> ( <input data-k="y2" id="w-y2" aria-label="Your value of x"> ) = <input data-k="y3" id="w-y3" aria-label="Value of y" style="width:7ch"></div>
+        <div class="actions"><button type="button" class="btn primary check">Check</button><button type="button" class="btn ghost hint">Hint</button></div>
+        <p class="hint-text" hidden></p><p class="fb" aria-live="polite"></p>
+      </li>
+    </ol>
+    <div class="wfinal" id="w-final" hidden>
+      <p id="w-final-text"></p>
+      <div class="actions"><button type="button" class="btn primary" id="w-show">Show it on the scale</button><button type="button" class="btn ghost" id="w-reset">Start over</button></div>
+    </div>
   </section>
 </div>
 
@@ -313,74 +356,134 @@ summary{cursor:pointer;font:600 1rem var(--font-display);color:var(--accent)}
     $("eq-profit").textContent = Math.abs(P)<1e-9 ? "Zero profit: break even" : P<0 ? "Negative: a loss" : "Positive: a profit";
   }
 
-  /* ---------- graph ---------- */
-  function renderGraph(){
-    const W=680,H=300,L=64,Rm=18,T=16,B=44, pw=W-L-Rm, ph=H-T-B;
-    const xMax=S.nMax, yMax=niceCeil(maxMoney());
-    const X = v => L + v/xMax*pw, Y = v => T + ph - v/yMax*ph;
-    let s = "";
-    const ys = niceStep(yMax,5), xs = niceStep(xMax,6);
-    for (let v=0; v<=yMax+1e-9; v+=ys){
-      s += `<line x1="${L}" x2="${W-Rm}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/>`;
-      s += `<text x="${L-8}" y="${Y(v)+4}" text-anchor="end">$${num(v)}</text>`;
-    }
-    for (let v=0; v<=xMax+1e-9; v+=xs){
-      s += `<text x="${X(v)}" y="${T+ph+18}" text-anchor="middle">${num(v)}</text>`;
-    }
-    s += `<line x1="${L}" x2="${W-Rm}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--muted)" stroke-width="1.5"/>`;
-    s += `<line x1="${L}" x2="${L}" y1="${T}" y2="${Y(0)}" stroke="var(--muted)" stroke-width="1.5"/>`;
-    s += `<text x="${L+pw/2}" y="${H-6}" text-anchor="middle">Number sold (${S.unit})</text>`;
-    s += `<text transform="translate(14 ${T+ph/2}) rotate(-90)" text-anchor="middle">Dollars</text>`;
-    // lines
-    s += `<line x1="${X(0)}" y1="${Y(cost(0))}" x2="${X(xMax)}" y2="${Y(cost(xMax))}" stroke="var(--cost)" stroke-width="3" stroke-linecap="round"/>`;
-    s += `<line x1="${X(0)}" y1="${Y(rev(0))}" x2="${X(xMax)}" y2="${Y(rev(xMax))}" stroke="var(--rev)" stroke-width="3" stroke-linecap="round"/>`;
-    // current n
-    const n=S.n, cY=Y(cost(n)), rY=Y(rev(n)), gapColor = cost(n)>rev(n) ? "var(--cost)" : "var(--rev)";
-    s += `<line x1="${X(n)}" x2="${X(n)}" y1="${T}" y2="${Y(0)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
-    s += `<line x1="${X(n)}" x2="${X(n)}" y1="${cY}" y2="${rY}" stroke="${gapColor}" stroke-width="7" stroke-opacity=".35"/>`;
-    s += `<circle cx="${X(n)}" cy="${cY}" r="6" fill="var(--cost)" stroke="var(--surface)" stroke-width="2"/>`;
-    s += `<circle cx="${X(n)}" cy="${rY}" r="6" fill="var(--rev)" stroke="var(--surface)" stroke-width="2"/>`;
+  /* ---------- worksheet ---------- */
+  const W = {x:null};
+  const art = w => (/^[aeiou]/i.test(w) ? "an " : "a ") + w;
+  const r2 = v => Math.round(v*100)/100;
+  const parseNum = v => { const t = String(v).replace(/[$,\s]/g,""); return t==="" ? NaN : Number(t); };
+  const near = (a,b) => isFinite(a) && Math.abs(a - r2(b)) < 0.006;
+  const wsteps = () => Array.from(document.querySelectorAll(".wstep"));
+  function expected(k){
     const be = breakEven();
-    if (S.found && be!==null && be<=xMax){
-      const bx=X(be), by=Y(rev(be));
-      s += `<circle cx="${bx}" cy="${by}" r="9" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
-      const anchor = bx > 230 ? "end" : "start", dx = anchor==="end" ? -14 : 14, dy = anchor==="end" ? -12 : 26;
-      s += `<text x="${bx+dx}" y="${by+dy}" text-anchor="${anchor}" style="fill:var(--accent);font-weight:700;font-size:13px">Break-even (${num(be)}, $${num(rev(be))})</text>`;
+    switch(k){
+      case "cS": case "s1": return [S.c];
+      case "cI": case "s2": case "t1": return [S.F];
+      case "rS": case "s3": case "y1": return [S.p];
+      case "t2": return [S.p - S.c];
+      case "x": return be===null ? [] : [be, Math.ceil(be - 1e-9)];
+      case "y2": return [W.x];
+      case "y3": return [S.p * W.x];
     }
-    $("graph").innerHTML = s;
-    $("lg-cost").textContent = `${coef(S.c)}x + ${num(S.F)}`;
-    $("lg-rev").textContent = `${coef(S.p)}x`;
-    $("graph-tip").textContent = S.found
-      ? "The lines cross at the break-even point. Left of it, cost is higher. Right of it, revenue is higher."
-      : "The shaded gap between the two dots is the same as the difference between the pans. Where does the gap shrink to zero?";
+    return [];
   }
-
-  /* ---------- algebra ---------- */
-  function renderSteps(){
-    const m = margin(), be = breakEven(), c=coef(S.c), p=coef(S.p), F=num(S.F);
-    const ol = $("steps");
-    if (m<=0){
-      ol.innerHTML = `<li><span class="math">${c}n + ${F} = ${p}n</span><span class="why">Taking ${p}n off both sides leaves ${coef(S.c-S.p)}n + ${F} = 0. The cost pan always stays heavier, so there is no break-even point.</span></li>`;
-      $("insight").textContent = "Each sale has to bring in more than it costs, or the fixed fee can never be paid back.";
-      return;
+  const HINTS = {
+    1: () => `Cost starts at the one-time fee of $${num(S.F)}, even before anything is sold. Then it grows by $${coef(S.c)} for each ${S.one}. Revenue starts at $0 and grows by the selling price for each ${S.one}.`,
+    2: () => `Cost: y = ${coef(S.c)}x + ${num(S.F)}. Revenue: y = ${coef(S.p)}x. Since both are equal to y, write the cost expression on the left of the equals sign and the revenue expression on the right.`,
+    3: () => `Subtract ${coef(S.c)}x from both sides. The left side keeps only the fee. The right side becomes (${coef(S.p)} − ${coef(S.c)})x.`,
+    4: () => `x is being multiplied by ${coef(S.p - S.c)}. Undo that by dividing both sides by ${coef(S.p - S.c)}.`,
+    5: () => `Replace x with ${W.x===null ? "your answer" : num(W.x)} in y = ${coef(S.p)}x, then multiply.`
+  };
+  function specialFeedback(n, wrong, v){
+    if (n===1){
+      if (near(v.cS, S.F) && near(v.cI, S.c)) return "The slope and the y-intercept are switched. The slope is the amount added for each item. The y-intercept is what you pay even when you sell nothing.";
+      if (wrong.includes("rS") && near(v.rS, S.c)) return `$${coef(S.c)} is what each ${S.one} costs to make. Revenue counts the money that comes in when you sell one.`;
+      if (wrong.includes("cS") && near(v.cS, S.p)) return `$${coef(S.p)} is the selling price. The cost equation needs what you pay for each ${S.one}.`;
     }
-    const whole = Number.isInteger(Math.round(be*1e6)/1e6);
-    const steps = [
-      [`${c}n + ${F} = ${p}n`, "Cost = Revenue. The pans hold equal amounts."],
-      [`${F} = ${p}n − ${c}n`, `Take ${c}n off both pans. The scale stays balanced because you removed the same amount from each side.`],
-      [`${F} = ${coef(m)}n`, `Combine like terms. Each ${S.one} brings in $${coef(m)} more than it costs.`],
-      [`n = ${F} ÷ ${coef(m)} = ${num(be)}`, `Divide both sides by ${coef(m)} to find how many $${coef(m)} shares it takes to cover the $${F} fee.`]
-    ];
-    if (!whole) steps.push([`n = ${Math.ceil(be)}`, `You can't sell part of a ${S.one}, so round up. Rounding down would leave a small loss.`]);
-    ol.innerHTML = steps.map(s=>`<li><span class="math">${s[0]}</span><span class="why">${s[1]}</span></li>`).join("");
-    const nn = whole ? num(be) : Math.ceil(be);
-    $("insight").textContent = `Check: ${coef(S.c)}(${nn}) + ${F} = ${money(cost(+String(nn).replace(/,/g,"")))} and ${p}(${nn}) = ${money(rev(+String(nn).replace(/,/g,"")))}. The fixed fee is the only thing making the cost pan heavier at the start, and every ${S.one} sold chips $${coef(m)} off that head start.`;
+    if (n===2 && near(v.s1, S.p) && near(v.s3, S.c)) return "The sides are switched. Put the cost expression (the one with the fee) on the left.";
+    if (n===3 && wrong.includes("t2") && near(v.t2, S.p + S.c)) return `Subtracting ${coef(S.c)}x takes it away from ${coef(S.p)}x. Try ${coef(S.p)} − ${coef(S.c)}.`;
+    if (n===4 && wrong.includes("x") && near(v.x, S.F * (S.p - S.c))) return "That's multiplying. To undo multiplication by a number, divide by it.";
+    if (n===4 && wrong.includes("x") && near(v.x, (S.p - S.c) / S.F)) return "The division is upside down. Divide the fee by the number in front of x.";
+    if (n===5 && wrong.includes("y2")) return `The middle blank is the x you found in step 4: ${num(W.x)}.`;
+    return null;
   }
+  function successText(n, v){
+    const m = S.p - S.c, be = breakEven();
+    switch(n){
+      case 1: return "Correct. Cost has a y-intercept because of the fee. Revenue starts at 0 because nothing sold means no money in.";
+      case 2: return "That's substitution. Both expressions equal y, so they must equal each other. This is the balanced scale written as an equation.";
+      case 3: return `Each ${S.one} sold brings in $${coef(m)} more than it costs to make. That is what pays off the $${num(S.F)} fee.`;
+      case 4:
+        if (Math.abs(be - Math.round(be)) > 1e-6){
+          return near(v.x, be)
+            ? `x = ${num(be)}. You can't sell part of ${art(S.one)}, so ${Math.ceil(be)} ${S.unit} is the fewest that avoids a loss. Use ${num(be)} in the next step to find the exact break-even point.`
+            : `Good thinking: x = ${num(be)} exactly, and you rounded up to ${Math.ceil(be)} because you can't sell part of ${art(S.one)}.`;
+        }
+        return `x = ${num(be)}. That is how many ${S.unit} it takes to break even.`;
+      case 5: return "Correct.";
+    }
+  }
+  function setLocked(li, locked){
+    li.classList.toggle("locked", locked);
+    li.querySelectorAll("input,button").forEach(e=>e.disabled = locked);
+  }
+  function checkStep(li){
+    const n = +li.dataset.step, ins = Array.from(li.querySelectorAll("input")), v = {}, wrong = [];
+    ins.forEach(i=>{ v[i.dataset.k] = parseNum(i.value); });
+    ins.forEach(i=>{
+      const k = i.dataset.k, ok = expected(k).some(e => near(v[k], e));
+      i.classList.toggle("ok", ok); i.classList.toggle("bad", !ok); i.setAttribute("aria-invalid", String(!ok));
+      if (!ok) wrong.push(k);
+    });
+    const fb = li.querySelector(".fb");
+    if (!wrong.length){
+      li.classList.add("done");
+      if (n===4) W.x = v.x;
+      fb.className = "fb good"; fb.textContent = successText(n, v);
+      if (n<5){ const nx = wsteps()[n]; setLocked(nx, false); nx.querySelector("input").focus({preventScroll:true}); }
+      else showFinal();
+    } else {
+      li.classList.remove("done");
+      fb.className = "fb bad";
+      fb.textContent = wrong.some(k=>isNaN(v[k])) ? "Fill in every blank with a number."
+        : (specialFeedback(n, wrong, v) || ((wrong.length===1 ? "The red blank isn't right yet." : "The red blanks aren't right yet.") + " Try again, or press Hint."));
+    }
+  }
+  function showFinal(){
+    const x = W.x, C = cost(x), R = rev(x);
+    const xs = num(x) + " " + (x===1 ? S.one : S.unit);
+    const be = breakEven();
+    $("w-final-text").innerHTML = (Math.abs(C - R) < 0.005 || Math.abs(x - be) < 0.006)
+      ? `<strong>Break-even point: (${num(be)}, ${num(rev(be))})</strong><br>At ${num(be)} ${S.unit}, cost and revenue are both ${money(rev(be))}. If you graphed the two lines, they would cross at this point.` + (Math.abs(be - Math.round(be)) > 1e-6 ? ` Since you can't sell part of ${art(S.one)}, ${Math.ceil(be)} ${S.unit} is the fewest to sell without a loss.` : "")
+      : `<strong>Solution: x = ${num(x)}</strong><br>At ${xs}, cost is ${money(C)} and revenue is ${money(R)}, a profit of ${money(R - C)}. The exact break-even point is (${num(breakEven())}, ${num(rev(breakEven()))}), but you can't sell part of ${art(S.one)}.`;
+    $("w-final").hidden = false;
+  }
+  function resetWork(){
+    W.x = null;
+    document.querySelectorAll(".u-unit").forEach(e=>e.textContent = S.unit);
+    document.querySelectorAll(".u-one").forEach(e=>e.textContent = S.one);
+    const none = margin() <= 0;
+    $("w-note").hidden = !none;
+    wsteps().forEach((li, idx)=>{
+      li.classList.remove("done");
+      li.querySelectorAll("input").forEach(i=>{ i.value=""; i.classList.remove("ok","bad"); i.removeAttribute("aria-invalid"); });
+      li.querySelector(".fb").textContent = ""; li.querySelector(".fb").className = "fb";
+      const h = li.querySelector(".hint-text"); h.hidden = true; h.textContent = "";
+      setLocked(li, idx>0);
+      if (none && idx>=2) setLocked(li, true);
+    });
+    $("w-final").hidden = true;
+  }
+  wsteps().forEach(li=>{
+    li.querySelector(".check").addEventListener("click", ()=>checkStep(li));
+    li.querySelector(".hint").addEventListener("click", ()=>{
+      const h = li.querySelector(".hint-text"); h.textContent = HINTS[+li.dataset.step](); h.hidden = false;
+    });
+    li.querySelectorAll("input").forEach(i=>{
+      i.type = "text"; i.inputMode = "decimal"; i.autocomplete = "off";
+      i.addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); checkStep(li); } });
+      i.addEventListener("input", ()=>{ i.classList.remove("ok","bad"); i.removeAttribute("aria-invalid"); });
+    });
+  });
+  $("w-show").addEventListener("click", ()=>{
+    setN(Math.ceil(W.x - 1e-9));
+    document.querySelector(".stage").scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"start"});
+  });
+  $("w-reset").addEventListener("click", ()=>{ resetWork(); $("w-cS").focus(); });
 
   /* ---------- wiring ---------- */
   function update(){
     $("copies").value = S.n; $("n-num").value = S.n;
-    renderScale(); renderNumbers(); renderGraph();
+    renderScale(); renderNumbers();
   }
   function setN(v){
     v = Math.round(+v); if (!isFinite(v)) return;
@@ -392,8 +495,7 @@ summary{cursor:pointer;font:600 1rem var(--font-display);color:var(--accent)}
     $("in-fee").value=P.F; $("in-cost").value=P.c; $("in-price").value=P.p;
     $("problem-text").textContent = P.text; $("unit-label").textContent = P.unit;
     document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed", b.dataset.preset===key));
-    $("steps-box").open = false;
-    recomputeRange(); renderSteps(); update();
+    recomputeRange(); resetWork(); update();
   }
   function readParams(){
     const F=parseFloat($("in-fee").value), c=parseFloat($("in-cost").value), p=parseFloat($("in-price").value);
@@ -405,7 +507,7 @@ summary{cursor:pointer;font:600 1rem var(--font-display);color:var(--accent)}
       document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed", b.dataset.preset==="custom"));
     }
     $("problem-text").textContent = `Making each item costs $${coef(c)} plus a one-time fee of $${num(F)}. Each item sells for $${coef(p)}. How many items must be sold to break even?`;
-    recomputeRange(); renderSteps(); update();
+    recomputeRange(); resetWork(); update();
   }
 
   document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>loadPreset(b.dataset.preset)));
