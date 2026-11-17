@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Break-Even Balance</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one-column classroom workbench — problem card, balance scale with controls, live numbers, graph, algebra steps */
+:root{
+  --bg:#edf1f7; --surface:#ffffff; --ink:#17223a; --muted:#56627b; --line:#d2d9e5;
+  --cost:#c2412d; --fee:#7a2a1d; --rev:#1d7856; --on-bar:#ffffff;
+  --accent:#2c4ea3; --accent-soft:#dfe7fb; --metal:#8b95a9; --metal-dark:#5d677c;
+  --good-soft:#d6efe3; --bad-soft:#f6dcd6;
+  --font-display:"Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151f; --surface:#192131; --ink:#e8edf6; --muted:#9ba7be; --line:#2c374e;
+    --cost:#ee8a74; --fee:#f6b7a8; --rev:#5fd0a4; --on-bar:#151b26;
+    --accent:#93b2ff; --accent-soft:#24325a; --metal:#7b869c; --metal-dark:#aab4c8;
+    --good-soft:#1d3a30; --bad-soft:#40261f; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151f; --surface:#192131; --ink:#e8edf6; --muted:#9ba7be; --line:#2c374e;
+  --cost:#ee8a74; --fee:#f6b7a8; --rev:#5fd0a4; --on-bar:#151b26;
+  --accent:#93b2ff; --accent-soft:#24325a; --metal:#7b869c; --metal-dark:#aab4c8;
+  --good-soft:#1d3a30; --bad-soft:#40261f; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:grid;gap:20px}
+h1,h2{font-family:var(--font-display);text-wrap:balance;margin:0;letter-spacing:-0.01em}
+h1{font-size:clamp(1.6rem,4vw,2.2rem);font-weight:700}
+h2{font-size:1.15rem;font-weight:600}
+.lede{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.label{font-family:var(--font-display);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* problem picker */
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:600 .9rem var(--font-display);border:1.5px solid var(--line);background:transparent;color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.chip:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.problem{font-size:1.1rem;margin:0;max-width:65ch}
+.params{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.param{display:grid;gap:4px}
+.param span{font-size:.85rem;color:var(--muted)}
+.param .field{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:10px;padding:0 10px;background:var(--bg)}
+.param .field b{color:var(--muted);font-weight:400}
+.param input{width:100%;border:0;background:transparent;color:var(--ink);font:600 1.05rem var(--font-display);padding:8px 4px;font-variant-numeric:tabular-nums}
+.param input:focus{outline:none}
+.param .field:focus-within{border-color:var(--accent)}
+.param.fee .field{border-left:6px solid var(--fee)}
+.param.cost .field{border-left:6px solid var(--cost)}
+.param.rev .field{border-left:6px solid var(--rev)}
+@media (max-width:560px){.params{grid-template-columns:1fr}}
+
+/* scale */
+.stage{display:grid;gap:10px}
+.status{justify-self:center;font:600 1rem var(--font-display);padding:8px 16px;border-radius:999px;text-align:center;transition:background .3s}
+.status.loss{background:var(--bad-soft);color:var(--cost)}
+.status.profit{background:var(--good-soft);color:var(--rev)}
+.status.even{background:var(--accent);color:var(--surface)}
+.scale-box{overflow-x:auto}
+#scale{display:block;width:100%;max-width:680px;margin:0 auto;height:auto}
+#scale text{font-family:var(--font-display)}
+.controls{display:grid;gap:10px}
+.n-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.n-row button{font:600 .95rem var(--font-display);min-width:52px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.n-row button:hover{border-color:var(--accent)}
+.n-out{display:flex;align-items:baseline;gap:6px;padding:0 8px}
+.n-out input{width:5.5ch;font:700 1.8rem var(--font-display);text-align:center;border:0;border-bottom:2px solid var(--accent);background:transparent;color:var(--ink);font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.n-out input::-webkit-inner-spin-button{display:none}
+.n-out span{color:var(--muted)}
+#copies{width:100%;accent-color:var(--accent);height:28px}
+.range-ends{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* numbers */
+.ledger{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.cell{border-radius:12px;padding:12px 14px;background:var(--bg);display:grid;gap:2px;min-width:0}
+.cell .v{font:700 1.45rem var(--font-display);font-variant-numeric:tabular-nums}
+.cell .eq{font-size:.88rem;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cell.c .v{color:var(--cost)} .cell.r .v{color:var(--rev)}
+@media (max-width:560px){.ledger{grid-template-columns:1fr}}
+
+/* graph */
+#graph{display:block;width:100%;height:auto;min-width:420px}
+#graph text{font-family:var(--font-body);font-size:12px;fill:var(--muted)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
+
+/* algebra */
+details{border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font:600 1rem var(--font-display);color:var(--accent)}
+.steps{display:grid;gap:12px;margin:14px 0 0;padding:0;list-style:none;counter-reset:s}
+.steps li{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;counter-increment:s}
+.steps li::before{content:counter(s);grid-row:span 2;font:700 .9rem var(--font-display);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.steps .math{font:600 1.15rem var(--font-display);font-variant-numeric:tabular-nums}
+.steps .why{color:var(--muted);font-size:.95rem}
+.insight{margin:4px 0 0;padding:12px 14px;border-radius:10px;background:var(--accent-soft);max-width:70ch}
+.tip{margin:0;color:var(--muted);font-size:.95rem}
+@media (prefers-reduced-motion: reduce){.status{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Break-Even Balance</h1>
+    <p class="lede">The left pan holds everything you spend. The right pan holds everything you take in. Change how many copies you sell until the scale balances. That balance point is the break-even point, where cost equals revenue.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="p-h">
+    <div class="label" id="p-h">Problem</div>
+    <div class="presets" role="group" aria-label="Choose a problem">
+      <button class="chip" data-preset="newsletter" aria-pressed="true">Newsletter</button>
+      <button class="chip" data-preset="shirts" aria-pressed="false">T-shirts</button>
+      <button class="chip" data-preset="cookies" aria-pressed="false">Bake sale</button>
+      <button class="chip" data-preset="custom" aria-pressed="false">Make your own</button>
+    </div>
+    <p class="problem" id="problem-text"></p>
+    <div class="params">
+      <label class="param fee"><span>Fixed fee (paid once)</span><span class="field"><b>$</b><input id="in-fee" type="number" min="0" step="any" inputmode="decimal"></span></label>
+      <label class="param cost"><span>Cost per item</span><span class="field"><b>$</b><input id="in-cost" type="number" min="0" step="any" inputmode="decimal"></span></label>
+      <label class="param rev"><span>Selling price per item</span><span class="field"><b>$</b><input id="in-price" type="number" min="0" step="any" inputmode="decimal"></span></label>
+    </div>
+  </section>
+
+  <section class="panel stage" aria-labelledby="s-h">
+    <h2 id="s-h" class="label">The scale</h2>
+    <div class="status loss" id="status" role="status" aria-live="polite"></div>
+    <div class="scale-box">
+      <svg id="scale" viewBox="0 0 680 420" role="img" aria-labelledby="scale-desc">
+        <desc id="scale-desc">A balance scale. The cost pan is on the left and the revenue pan is on the right.</desc>
+        <!-- base -->
+        <rect x="250" y="392" width="180" height="14" rx="7" fill="var(--metal-dark)"/>
+        <path d="M340 336 L305 394 L375 394 Z" fill="var(--metal)"/>
+        <g id="beam"><rect x="115" y="327" width="450" height="14" rx="7" fill="var(--metal-dark)"/></g>
+        <circle cx="340" cy="334" r="9" fill="var(--surface)" stroke="var(--metal-dark)" stroke-width="4"/>
+        <g id="pan-left"></g>
+        <g id="pan-right"></g>
+      </svg>
+    </div>
+    <div class="controls">
+      <div class="n-row">
+        <button type="button" data-step="-10">−10</button>
+        <button type="button" data-step="-1">−1</button>
+        <label class="n-out"><input id="n-num" type="number" min="0" step="1" inputmode="numeric" aria-label="Number sold"><span id="unit-label">copies</span></label>
+        <button type="button" data-step="1">+1</button>
+        <button type="button" data-step="10">+10</button>
+      </div>
+      <input id="copies" type="range" min="0" step="1" aria-label="Number sold">
+      <div class="range-ends"><span>0</span><span id="range-max"></span></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="n-h">
+    <h2 id="n-h" class="label">What's on each pan</h2>
+    <div class="ledger">
+      <div class="cell c"><span class="label">Cost</span><span class="v" id="v-cost"></span><span class="eq" id="eq-cost"></span></div>
+      <div class="cell r"><span class="label">Revenue</span><span class="v" id="v-rev"></span><span class="eq" id="eq-rev"></span></div>
+      <div class="cell"><span class="label">Profit = Revenue − Cost</span><span class="v" id="v-profit"></span><span class="eq" id="eq-profit"></span></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="g-h">
+    <h2 id="g-h" class="label">Same story as a graph</h2>
+    <div class="legend"><span><i style="background:var(--cost)"></i>Cost line, y = <span id="lg-cost"></span></span><span><i style="background:var(--rev)"></i>Revenue line, y = <span id="lg-rev"></span></span></div>
+    <div style="overflow-x:auto"><svg id="graph" viewBox="0 0 680 300" role="img" aria-label="Cost and revenue lines plotted against number sold"></svg></div>
+    <p class="tip" id="graph-tip">The vertical gap between the lines is the same as the difference between the pans.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="a-h">
+    <h2 id="a-h" class="label">Solve it on paper</h2>
+    <p class="tip">Find the balance on the scale first, then open the steps. Each algebra move is something you could do to a real scale without tipping it.</p>
+    <details id="steps-box">
+      <summary>Show the algebra steps</summary>
+      <ol class="steps" id="steps"></ol>
+      <p class="insight" id="insight"></p>
+    </details>
+  </section>
+</div>
+
+<script>
+(function(){
+  const PRESETS = {
+    newsletter:{F:450,c:1.5,p:3,unit:"copies",one:"copy",text:"Printing a newsletter costs $1.50 per copy plus $450 in printer's fees. The copies are sold for $3 each. How many copies must be sold to break even?"},
+    shirts:{F:200,c:4,p:12,unit:"shirts",one:"shirt",text:"The robotics club pays a $200 screen-setup fee, then $4 for each T-shirt printed. They sell the shirts for $12 each. How many shirts must they sell to break even?"},
+    cookies:{F:60,c:0.75,p:2,unit:"cookies",one:"cookie",text:"A bake-sale booth costs $60 to rent. Ingredients cost $0.75 per cookie, and each cookie sells for $2. How many cookies must be sold to break even?"},
+    custom:{F:100,c:2,p:6,unit:"items",one:"item",text:"Make your own problem: type a fixed fee, a cost per item, and a selling price below. Then balance the scale."}
+  };
+  const S = {preset:"newsletter",F:450,c:1.5,p:3,n:0,nMax:600,unit:"copies",one:"copy",found:false};
+  const $ = id => document.getElementById(id);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const money = v => (v<0?"−":"") + "$" + Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const num = v => { const r = Math.round(v*100)/100; return Number.isInteger(r) ? r.toLocaleString("en-US") : r.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  const coef = v => { const r = Math.round(v*100)/100; return Number.isInteger(r) ? String(r) : r.toFixed(2); };
+  function niceCeil(x){
+    if (x<=0) return 10;
+    const p = Math.pow(10, Math.floor(Math.log10(x))), m = x/p;
+    const s = [1,1.2,1.5,2,2.5,3,4,5,6,8,10].find(t=>m<=t+1e-9);
+    return s*p;
+  }
+  function niceStep(range, count){
+    const raw = range/count, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw/p;
+    return (m<1.5?1: m<3?2: m<7?5:10)*p;
+  }
+  const cost = n => S.F + S.c*n;
+  const rev = n => S.p*n;
+  const margin = () => S.p - S.c;
+  const breakEven = () => margin()>0 ? S.F/margin() : null;
+  const maxMoney = () => Math.max(cost(S.nMax), rev(S.nMax), 1);
+
+  function recomputeRange(){
+    const be = breakEven();
+    S.nMax = be===null ? 100 : Math.max(10, Math.round(niceCeil(be*2)));
+    S.n = Math.min(S.n, S.nMax);
+    $("copies").max = S.nMax; $("n-num").max = S.nMax;
+    $("range-max").textContent = S.nMax.toLocaleString("en-US");
+  }
+
+  /* ---------- scale ---------- */
+  const PIV = {x:340,y:334}, HALF = 210, BAR_MAX = 210, PAN_LIFT = 20, BAR_W = 104;
+  let phi = 0, phiTarget = 0, raf = null;
+
+  function el(tag, attrs, text){
+    const e = document.createElementNS(svgNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text!=null) e.textContent = text;
+    return e;
+  }
+  function buildPan(g, segments, title, total, color){
+    g.textContent = "";
+    g.appendChild(el("rect",{x:-5,y:-PAN_LIFT,width:10,height:PAN_LIFT,fill:"var(--metal)"}));
+    g.appendChild(el("rect",{x:-92,y:-PAN_LIFT-8,width:184,height:10,rx:5,fill:"var(--metal-dark)"}));
+    const k = BAR_MAX / maxMoney();
+    let y = -PAN_LIFT-8;
+    segments.forEach(s=>{
+      const h = s.value*k;
+      if (h<=0) return;
+      y -= h;
+      g.appendChild(el("rect",{x:-BAR_W/2,y:y,width:BAR_W,height:h,fill:s.fill,rx:Math.min(4,h/2)}));
+      if (h>=20) g.appendChild(el("text",{x:0,y:y+h/2+5,"text-anchor":"middle","font-size":13,"font-weight":600,fill:"var(--on-bar)"}, s.label));
+      else if (h>=1) g.appendChild(el("text",{x:BAR_W/2+6,y:y+h/2+4,"font-size":11,fill:s.fill}, s.label));
+    });
+    g.appendChild(el("text",{x:0,y:y-28,"text-anchor":"middle","font-size":12,"font-weight":600,"letter-spacing":"1.2",fill:"var(--muted)"}, title));
+    g.appendChild(el("text",{x:0,y:y-8,"text-anchor":"middle","font-size":20,"font-weight":700,fill:color}, money(total)));
+  }
+  function placeScale(){
+    const r = phi*Math.PI/180, cx = Math.cos(r)*HALF, sy = Math.sin(r)*HALF;
+    $("beam").setAttribute("transform",`rotate(${phi} ${PIV.x} ${PIV.y})`);
+    $("pan-left").setAttribute("transform",`translate(${PIV.x-cx} ${PIV.y-sy})`);
+    $("pan-right").setAttribute("transform",`translate(${PIV.x+cx} ${PIV.y+sy})`);
+  }
+  function animate(){
+    const d = phiTarget - phi;
+    if (reduce || Math.abs(d)<0.02){ phi = phiTarget; placeScale(); raf=null; return; }
+    phi += d*0.14; placeScale(); raf = requestAnimationFrame(animate);
+  }
+  function renderScale(){
+    const n = S.n, C = cost(n), R = rev(n);
+    buildPan($("pan-left"), [
+      {value:S.F, fill:"var(--fee)", label:"$"+num(S.F)+" fee"},
+      {value:S.c*n, fill:"var(--cost)", label:"$"+coef(S.c)+" × "+n.toLocaleString("en-US")}
+    ], "COST", C, "var(--cost)");
+    buildPan($("pan-right"), [
+      {value:R, fill:"var(--rev)", label:"$"+coef(S.p)+" × "+n.toLocaleString("en-US")}
+    ], "REVENUE", R, "var(--rev)");
+    const diff = C - R;
+    // heavier cost pan dips left (negative rotation); tanh keeps small gaps visible
+    phiTarget = -9 * Math.tanh(diff / (maxMoney()*0.05));
+    if (Math.abs(diff) < 1e-9) phiTarget = 0;
+    if (!raf) raf = requestAnimationFrame(animate);
+    $("scale-desc").textContent = `Cost pan holds ${money(C)}; revenue pan holds ${money(R)}. ` +
+      (Math.abs(diff)<1e-9 ? "The scale is level." : diff>0 ? "The cost side is lower." : "The revenue side is lower.");
+  }
+
+  /* ---------- status + ledger ---------- */
+  function renderNumbers(){
+    const n = S.n, C = cost(n), R = rev(n), P = R - C, be = breakEven();
+    const st = $("status");
+    const nTxt = n.toLocaleString("en-US")+" "+(n===1?S.one:S.unit);
+    if (Math.abs(P) < 1e-9){
+      st.className="status even"; st.textContent = `Balanced! At ${nTxt}, cost = revenue. This is the break-even point.`;
+      S.found = true;
+    } else if (P<0){
+      st.className="status loss"; st.textContent = `Cost is heavier: losing ${money(-P)} at ${nTxt}`;
+      if (be!==null && !Number.isInteger(be) && n===Math.floor(be)) st.textContent += `. Break-even falls between ${n} and ${n+1}.`;
+    } else {
+      st.className="status profit";
+      if (be!==null && !Number.isInteger(Math.round(be*1e6)/1e6) && n===Math.ceil(be)){
+        st.textContent = `Break-even is ${num(be)}, which isn't a whole number. ${nTxt} is the fewest that avoids a loss.`;
+        S.found = true;
+      } else st.textContent = `Revenue is heavier: earning ${money(P)} profit at ${nTxt}`;
+    }
+    if (margin()<=0){ st.className="status loss"; st.textContent = "Each item costs at least as much as it sells for, so this business can never break even. Raise the price."; }
+
+    const ns = n.toLocaleString("en-US");
+    $("v-cost").textContent = money(C);
+    $("eq-cost").textContent = `${coef(S.c)}(${ns}) + ${num(S.F)}`;
+    $("v-rev").textContent = money(R);
+    $("eq-rev").textContent = `${coef(S.p)}(${ns})`;
+    $("v-profit").textContent = money(P);
+    $("v-profit").style.color = Math.abs(P)<1e-9 ? "var(--accent)" : P<0 ? "var(--cost)" : "var(--rev)";
+    $("eq-profit").textContent = Math.abs(P)<1e-9 ? "Zero profit: break even" : P<0 ? "Negative: a loss" : "Positive: a profit";
+  }
+
+  /* ---------- graph ---------- */
+  function renderGraph(){
+    const W=680,H=300,L=64,Rm=18,T=16,B=44, pw=W-L-Rm, ph=H-T-B;
+    const xMax=S.nMax, yMax=niceCeil(maxMoney());
+    const X = v => L + v/xMax*pw, Y = v => T + ph - v/yMax*ph;
+    let s = "";
+    const ys = niceStep(yMax,5), xs = niceStep(xMax,6);
+    for (let v=0; v<=yMax+1e-9; v+=ys){
+      s += `<line x1="${L}" x2="${W-Rm}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+      s += `<text x="${L-8}" y="${Y(v)+4}" text-anchor="end">$${num(v)}</text>`;
+    }
+    for (let v=0; v<=xMax+1e-9; v+=xs){
+      s += `<text x="${X(v)}" y="${T+ph+18}" text-anchor="middle">${num(v)}</text>`;
+    }
+    s += `<line x1="${L}" x2="${W-Rm}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--muted)" stroke-width="1.5"/>`;
+    s += `<line x1="${L}" x2="${L}" y1="${T}" y2="${Y(0)}" stroke="var(--muted)" stroke-width="1.5"/>`;
+    s += `<text x="${L+pw/2}" y="${H-6}" text-anchor="middle">Number sold (${S.unit})</text>`;
+    s += `<text transform="translate(14 ${T+ph/2}) rotate(-90)" text-anchor="middle">Dollars</text>`;
+    // lines
+    s += `<line x1="${X(0)}" y1="${Y(cost(0))}" x2="${X(xMax)}" y2="${Y(cost(xMax))}" stroke="var(--cost)" stroke-width="3" stroke-linecap="round"/>`;
+    s += `<line x1="${X(0)}" y1="${Y(rev(0))}" x2="${X(xMax)}" y2="${Y(rev(xMax))}" stroke="var(--rev)" stroke-width="3" stroke-linecap="round"/>`;
+    // current n
+    const n=S.n, cY=Y(cost(n)), rY=Y(rev(n)), gapColor = cost(n)>rev(n) ? "var(--cost)" : "var(--rev)";
+    s += `<line x1="${X(n)}" x2="${X(n)}" y1="${T}" y2="${Y(0)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+    s += `<line x1="${X(n)}" x2="${X(n)}" y1="${cY}" y2="${rY}" stroke="${gapColor}" stroke-width="7" stroke-opacity=".35"/>`;
+    s += `<circle cx="${X(n)}" cy="${cY}" r="6" fill="var(--cost)" stroke="var(--surface)" stroke-width="2"/>`;
+    s += `<circle cx="${X(n)}" cy="${rY}" r="6" fill="var(--rev)" stroke="var(--surface)" stroke-width="2"/>`;
+    const be = breakEven();
+    if (S.found && be!==null && be<=xMax){
+      const bx=X(be), by=Y(rev(be));
+      s += `<circle cx="${bx}" cy="${by}" r="9" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
+      const anchor = bx > 230 ? "end" : "start", dx = anchor==="end" ? -14 : 14, dy = anchor==="end" ? -12 : 26;
+      s += `<text x="${bx+dx}" y="${by+dy}" text-anchor="${anchor}" style="fill:var(--accent);font-weight:700;font-size:13px">Break-even (${num(be)}, $${num(rev(be))})</text>`;
+    }
+    $("graph").innerHTML = s;
+    $("lg-cost").textContent = `${coef(S.c)}x + ${num(S.F)}`;
+    $("lg-rev").textContent = `${coef(S.p)}x`;
+    $("graph-tip").textContent = S.found
+      ? "The lines cross at the break-even point. Left of it, cost is higher. Right of it, revenue is higher."
+      : "The shaded gap between the two dots is the same as the difference between the pans. Where does the gap shrink to zero?";
+  }
+
+  /* ---------- algebra ---------- */
+  function renderSteps(){
+    const m = margin(), be = breakEven(), c=coef(S.c), p=coef(S.p), F=num(S.F);
+    const ol = $("steps");
+    if (m<=0){
+      ol.innerHTML = `<li><span class="math">${c}n + ${F} = ${p}n</span><span class="why">Taking ${p}n off both sides leaves ${coef(S.c-S.p)}n + ${F} = 0. The cost pan always stays heavier, so there is no break-even point.</span></li>`;
+      $("insight").textContent = "Each sale has to bring in more than it costs, or the fixed fee can never be paid back.";
+      return;
+    }
+    const whole = Number.isInteger(Math.round(be*1e6)/1e6);
+    const steps = [
+      [`${c}n + ${F} = ${p}n`, "Cost = Revenue. The pans hold equal amounts."],
+      [`${F} = ${p}n − ${c}n`, `Take ${c}n off both pans. The scale stays balanced because you removed the same amount from each side.`],
+      [`${F} = ${coef(m)}n`, `Combine like terms. Each ${S.one} brings in $${coef(m)} more than it costs.`],
+      [`n = ${F} ÷ ${coef(m)} = ${num(be)}`, `Divide both sides by ${coef(m)} to find how many $${coef(m)} shares it takes to cover the $${F} fee.`]
+    ];
+    if (!whole) steps.push([`n = ${Math.ceil(be)}`, `You can't sell part of a ${S.one}, so round up. Rounding down would leave a small loss.`]);
+    ol.innerHTML = steps.map(s=>`<li><span class="math">${s[0]}</span><span class="why">${s[1]}</span></li>`).join("");
+    const nn = whole ? num(be) : Math.ceil(be);
+    $("insight").textContent = `Check: ${coef(S.c)}(${nn}) + ${F} = ${money(cost(+String(nn).replace(/,/g,"")))} and ${p}(${nn}) = ${money(rev(+String(nn).replace(/,/g,"")))}. The fixed fee is the only thing making the cost pan heavier at the start, and every ${S.one} sold chips $${coef(m)} off that head start.`;
+  }
+
+  /* ---------- wiring ---------- */
+  function update(){
+    $("copies").value = S.n; $("n-num").value = S.n;
+    renderScale(); renderNumbers(); renderGraph();
+  }
+  function setN(v){
+    v = Math.round(+v); if (!isFinite(v)) return;
+    S.n = Math.max(0, Math.min(S.nMax, v)); update();
+  }
+  function loadPreset(key){
+    const P = PRESETS[key]; S.preset=key;
+    S.F=P.F; S.c=P.c; S.p=P.p; S.unit=P.unit; S.one=P.one; S.n=0; S.found=false;
+    $("in-fee").value=P.F; $("in-cost").value=P.c; $("in-price").value=P.p;
+    $("problem-text").textContent = P.text; $("unit-label").textContent = P.unit;
+    document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed", b.dataset.preset===key));
+    $("steps-box").open = false;
+    recomputeRange(); renderSteps(); update();
+  }
+  function readParams(){
+    const F=parseFloat($("in-fee").value), c=parseFloat($("in-cost").value), p=parseFloat($("in-price").value);
+    if (![F,c,p].every(v=>isFinite(v) && v>=0)) return;
+    S.F=F; S.c=c; S.p=p; S.found=false;
+    if (S.preset!=="custom"){
+      S.preset="custom"; S.unit="items"; S.one="item";
+      $("unit-label").textContent="items";
+      document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed", b.dataset.preset==="custom"));
+    }
+    $("problem-text").textContent = `Making each item costs $${coef(c)} plus a one-time fee of $${num(F)}. Each item sells for $${coef(p)}. How many items must be sold to break even?`;
+    recomputeRange(); renderSteps(); update();
+  }
+
+  document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>loadPreset(b.dataset.preset)));
+  ["in-fee","in-cost","in-price"].forEach(id=>$(id).addEventListener("input",readParams));
+  $("copies").addEventListener("input",e=>setN(e.target.value));
+  $("n-num").addEventListener("change",e=>setN(e.target.value));
+  $("n-num").addEventListener("input",e=>{ if (e.target.value!=="") setN(e.target.value); });
+  document.querySelectorAll("[data-step]").forEach(b=>b.addEventListener("click",()=>setN(S.n + +b.dataset.step)));
+
+  loadPreset("newsletter");
+  // open on an unbalanced example so the tilt is visible
+  setN(Math.round(S.nMax*0.2));
+})();
+</script>
+</body>
+</html>
